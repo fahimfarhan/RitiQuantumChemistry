@@ -1,0 +1,1 @@
+in pycharm select new project, and select conda NOT pip.
