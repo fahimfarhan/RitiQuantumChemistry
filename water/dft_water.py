@@ -35,12 +35,17 @@ def dft_water():
     # ==============================================================
     psi4.set_options({
         'basis': basis,
-        'scf_type': 'df',  # density fitting speeds up SCF
         'd_convergence': 1e-8,
         'e_convergence': 1e-8,
         'guess': 'sad',  # initial guess: superposition of atomic densities
         'geom_maxiter': 50,  # maximum geometry optimization steps
         'print': 2,  # moderate verbosity
+
+        # *** Recommended CPU Optimization ***
+        'scf_type': 'df',  # Density Fitting is the biggest speedup for DFT/HF
+        'freeze_core': True,  # Saves time by excluding core electrons from correlation
+        # (only matters for post-HF like MP2, but good practice)
+        'num_threads': -1  # Tells Psi4 to use ALL available CPU cores
     })
 
     # ==============================================================
