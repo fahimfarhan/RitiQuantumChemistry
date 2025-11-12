@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import psi4
 import numpy as np
 
@@ -6,12 +8,28 @@ import numpy as np
 METHOD = 'B3LYP-D3'  # DFT with Grimme's dispersion correction
 BASIS = '6-31G(d)'
 THREADS = 4
+LOG_FILE = 'analysis_summary.log' # Custom file for summary prints
 
+def my_log_print(message):
+    """Prints the message to the console and appends it to the summary log file."""
+    # Add timestamp for better log tracking
+    timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S] ")
+    full_message = timestamp + message
+
+    # 1. Print to console
+    print(message)
+
+    # 2. Append to log file
+    try:
+        with open(LOG_FILE, 'a') as f:
+            f.write(full_message + '\n')
+    except Exception as e:
+        print(f"Warning: Could not write to log file {LOG_FILE}: {e}")
 
 # --- 2. SETUP FUNCTION ---
 def setup_psi4_environment(method, basis, threads, memory='1 GB'):
     """Sets up Psi4 memory, threads, and global calculation options."""
-    print(f"Setting up Psi4: {method}/{basis} with {threads} threads.")
+    my_log_print(f"Setting up Psi4: {method}/{basis} with {threads} threads.")
     psi4.set_memory(memory)
     psi4.set_num_threads(threads)
 
@@ -48,22 +66,22 @@ def define_dimer_geometry():
 
 def optimize_and_get_energy(molecule, method, basis, label):
     """Performs geometry optimization and returns the optimized energy and wavefunction."""
-    print(f"\n🔬 Starting optimization for {label}...")
+    my_log_print(f"\n🔬 Starting optimization for {label}...")
 
     # Run a single-point energy calculation first to get the unoptimized wfn for Molden
     if "Dimer" in label:
         E_sp, wfn_sp = psi4.energy(f'{method}/{basis}', molecule=molecule, return_wfn=True)
         psi4.molden(wfn_sp, f'{label.lower()}_unoptimized.molden')
-        print(f"Molden file for unoptimized {label} saved.")
+        my_log_print(f"Molden file for unoptimized {label} saved.")
 
     E_opt, wfn_opt = psi4.optimize(f'{method}/{basis}', molecule=molecule, return_wfn=True)
-    print(f"✅ Optimized {label} Energy = {E_opt:.8f} Hartree")
+    my_log_print(f"✅ Optimized {label} Energy = {E_opt:.8f} Hartree")
     return E_opt, wfn_opt
 
 
 def calculate_properties_and_save(wfn, label):
     """Calculates molecular properties and saves the optimized Molden file."""
-    print(f"\nCalculating properties (Dipole and Charges) for optimized {label}...")
+    my_log_print(f"\nCalculating properties (Dipole and Charges) for optimized {label}...")
 
     # Calculate properties: Dipole Moment and ESP charges
     psi4.oeprop(wfn, 'DIPOLE', 'ESP_CHARGES')
@@ -71,7 +89,7 @@ def calculate_properties_and_save(wfn, label):
     # Generate MOLDEN file for visualization
     molden_file = f'{label.lower()}_optimized.molden'
     psi4.molden(wfn, molden_file)
-    print(f"💾 Molden file saved as '{molden_file}'")
+    my_log_print(f"💾 Molden file saved as '{molden_file}'")
 
 
 # --- 4. MAIN EXECUTION FUNCTION ---
@@ -105,7 +123,7 @@ def run_water_dimer_analysis():
     E_binding_kcal = E_binding * psi4.constants.hartree2kcalmol
 
     # 6. Final Summary
-    print(f"""
+    my_log_print(f"""
         ================== Water Dimer Final Summary ==================
         Method/Basis  : {METHOD} / {BASIS} (CPU Optimized)
         E(Optimized Dimer) : {E_dimer_opt:.8f} Hartree
