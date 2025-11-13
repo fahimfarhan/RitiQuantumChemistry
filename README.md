@@ -1,6 +1,7 @@
 in pycharm select new project, and select conda NOT pip.
 ```commandline
 conda install dftd3-python -c conda-forge
+pip install psutil
 ```
 
 create a folder (say "water"), write code. then use terminal to run 
