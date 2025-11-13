@@ -1,3 +1,8 @@
+# psi4 specific
+*.dat
+*.molden
+*.clean
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

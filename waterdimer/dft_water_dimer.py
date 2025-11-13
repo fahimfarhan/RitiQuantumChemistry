@@ -1,13 +1,13 @@
+import os
 from datetime import datetime
 
 import psi4
-import numpy as np
 
 # --- 1. CONFIGURATION ---
 # Global variables for settings (or pass them via a dictionary/config object)
 METHOD = 'B3LYP-D3'  # DFT with Grimme's dispersion correction
 BASIS = '6-31G(d)'
-THREADS = 4
+THREADS = os.cpu_count() or 4
 LOG_FILE = 'analysis_summary.log' # Custom file for summary prints
 
 def my_log_print(message):
@@ -64,23 +64,54 @@ def define_dimer_geometry():
     return dimer_geom
 
 
+# --- 5. CORE CALCULATION FUNCTIONS (With psi4.core.clean()) ---
+
 def optimize_and_get_energy(molecule, method, basis, label):
-    """Performs geometry optimization and returns the optimized energy and wavefunction."""
+    """Performs geometry optimization with error handling and returns the result."""
     my_log_print(f"\n🔬 Starting optimization for {label}...")
 
-    # Run a single-point energy calculation first to get the unoptimized wfn for Molden
-    if "Dimer" in label:
-        E_sp, wfn_sp = psi4.energy(f'{method}/{basis}', molecule=molecule, return_wfn=True)
-        psi4.molden(wfn_sp, f'{label.lower()}_unoptimized.molden')
-        my_log_print(f"Molden file for unoptimized {label} saved.")
+    E_opt = None
+    wfn_opt = None
 
-    E_opt, wfn_opt = psi4.optimize(f'{method}/{basis}', molecule=molecule, return_wfn=True)
-    my_log_print(f"✅ Optimized {label} Energy = {E_opt:.8f} Hartree")
-    return E_opt, wfn_opt
+    try:
+        # Run single-point for unoptimized Molden file (if dimer)
+        if "Dimer" in label:
+            my_log_print("Running initial single-point for UNOPTIMIZED structure output...")
+            E_sp, wfn_sp = psi4.energy(f'{method}/{basis}', molecule=molecule, return_wfn=True)
+            psi4.molden(wfn_sp, f'{label.lower()}_unoptimized.molden')
 
+            # --- SCRATCH MANAGEMENT 1: Clean up after the SP energy calculation ---
+            psi4.core.clean()
+            my_log_print(f"Scratch cleaned after unoptimized SP energy.")
+
+            my_log_print(f"Molden file for unoptimized {label} saved.")
+
+        # Run the actual optimization
+        E_opt, wfn_opt = psi4.optimize(f'{method}/{basis}', molecule=molecule, return_wfn=True)
+
+        # --- SCRATCH MANAGEMENT 2: Clean up after the OPTIMIZATION ---
+        psi4.core.clean()
+        my_log_print(f"Scratch cleaned after {label} optimization.")
+
+        # Psi4 returns None on failure (SCF or geometry convergence)
+        if E_opt is None:
+            raise RuntimeError("Psi4 optimization failed to converge.")
+
+        my_log_print(f"✅ Optimized {label} Energy = {E_opt:.8f} Hartree")
+        return E_opt, wfn_opt
+
+    except Exception as e:
+        my_log_print(f"🛑 FATAL CALCULATION ERROR for {label}: {e}")
+        # Always attempt final cleanup even if calculation failed
+        psi4.core.clean()
+        return 999999.999999, None
 
 def calculate_properties_and_save(wfn, label):
     """Calculates molecular properties and saves the optimized Molden file."""
+    if wfn is None:
+        my_log_print(f"\nThe wave function for {label} is Null. cannot compute optimization! returning...")
+        return
+
     my_log_print(f"\nCalculating properties (Dipole and Charges) for optimized {label}...")
 
     # Calculate properties: Dipole Moment and ESP charges
@@ -90,7 +121,8 @@ def calculate_properties_and_save(wfn, label):
     molden_file = f'{label.lower()}_optimized.molden'
     psi4.molden(wfn, molden_file)
     my_log_print(f"💾 Molden file saved as '{molden_file}'")
-
+    psi4.core.clean()
+    pass
 
 # --- 4. MAIN EXECUTION FUNCTION ---
 
@@ -112,12 +144,26 @@ def run_water_dimer_analysis():
     """)
 
     # 3. Perform Calculations
-    E_dimer_opt, wfn_dimer = optimize_and_get_energy(dimer_geom, METHOD, BASIS, "Dimer")
-    E_monomer_opt, wfn_monomer = optimize_and_get_energy(monomer_geom, METHOD, BASIS, "Monomer")
+    E_dimer_opt = 0.0
+    wfn_dimer = None
+
+    E_monomer_opt = 0.0
+    wfn_monomer = None
+
+    try:
+        E_dimer_opt, wfn_dimer = optimize_and_get_energy(dimer_geom, METHOD, BASIS, "Dimer")
+    except Exception as x:
+        my_log_print(x)
+    try:
+        E_monomer_opt, wfn_monomer = optimize_and_get_energy(monomer_geom, METHOD, BASIS, "Monomer")
+    except Exception as x:
+        my_log_print(x)
 
     # 4. Property Analysis and Output for Dimer
-    calculate_properties_and_save(wfn_dimer, "Dimer")
-
+    try:
+        calculate_properties_and_save(wfn_dimer, "Dimer")
+    except Exception as x:
+        my_log_print(x)
     # 5. Calculate Binding Energy
     E_binding = E_dimer_opt - (2 * E_monomer_opt)
     E_binding_kcal = E_binding * psi4.constants.hartree2kcalmol
@@ -134,9 +180,16 @@ def run_water_dimer_analysis():
         Interaction (kcal/mol): {E_binding_kcal:.2f} kcal/mol
         ===============================================================
     """)
+    pass
 
 
 if __name__ == '__main__':
     # Set the main log file name
+    start = datetime.now()
     psi4.set_output_file('water_dimer_analysis.log', False)
     run_water_dimer_analysis()
+    end = datetime.now()
+    delta = end - start
+    my_log_print(f"total run time {delta} seconds.")
+    my_log_print(f"threads count = {THREADS}")
+    pass
