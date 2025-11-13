@@ -1,50 +1,4 @@
-import os
-from datetime import datetime
-
-import psi4
-
-# --- 1. CONFIGURATION ---
-# Global variables for settings (or pass them via a dictionary/config object)
-METHOD = 'B3LYP-D3'  # DFT with Grimme's dispersion correction
-BASIS = '6-31G(d)'
-THREADS = os.cpu_count() or 4
-LOG_FILE = 'analysis_summary.log' # Custom file for summary prints
-
-def my_log_print(message):
-    """Prints the message to the console and appends it to the summary log file."""
-    # Add timestamp for better log tracking
-    timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S] ")
-    full_message = timestamp + message
-
-    # 1. Print to console
-    print(message)
-
-    # 2. Append to log file
-    try:
-        with open(LOG_FILE, 'a') as f:
-            f.write(full_message + '\n')
-    except Exception as e:
-        print(f"Warning: Could not write to log file {LOG_FILE}: {e}")
-
-# --- 2. SETUP FUNCTION ---
-def setup_psi4_environment(method, basis, threads, memory='1 GB'):
-    """Sets up Psi4 memory, threads, and global calculation options."""
-    my_log_print(f"Setting up Psi4: {method}/{basis} with {threads} threads.")
-    psi4.set_memory(memory)
-    psi4.set_num_threads(threads)
-
-    psi4.set_options({
-        'basis': basis,
-        'd_convergence': 1e-8,
-        'e_convergence': 1e-8,
-        'guess': 'sad',
-        'geom_maxiter': 50,
-        'print': 2,
-        'scf_type': 'df',  # CPU Optimization: Density Fitting
-        'freeze_core': True,
-    })
-
-
+from commoncode import *
 # --- 3. CORE CALCULATION FUNCTIONS ---
 
 def define_dimer_geometry():
@@ -64,65 +18,7 @@ def define_dimer_geometry():
     return dimer_geom
 
 
-# --- 5. CORE CALCULATION FUNCTIONS (With psi4.core.clean()) ---
 
-def optimize_and_get_energy(molecule, method, basis, label):
-    """Performs geometry optimization with error handling and returns the result."""
-    my_log_print(f"\n🔬 Starting optimization for {label}...")
-
-    E_opt = None
-    wfn_opt = None
-
-    try:
-        # Run single-point for unoptimized Molden file (if dimer)
-        if "Dimer" in label:
-            my_log_print("Running initial single-point for UNOPTIMIZED structure output...")
-            E_sp, wfn_sp = psi4.energy(f'{method}/{basis}', molecule=molecule, return_wfn=True)
-            psi4.molden(wfn_sp, f'{label.lower()}_unoptimized.molden')
-
-            # --- SCRATCH MANAGEMENT 1: Clean up after the SP energy calculation ---
-            psi4.core.clean()
-            my_log_print(f"Scratch cleaned after unoptimized SP energy.")
-
-            my_log_print(f"Molden file for unoptimized {label} saved.")
-
-        # Run the actual optimization
-        E_opt, wfn_opt = psi4.optimize(f'{method}/{basis}', molecule=molecule, return_wfn=True)
-
-        # --- SCRATCH MANAGEMENT 2: Clean up after the OPTIMIZATION ---
-        psi4.core.clean()
-        my_log_print(f"Scratch cleaned after {label} optimization.")
-
-        # Psi4 returns None on failure (SCF or geometry convergence)
-        if E_opt is None:
-            raise RuntimeError("Psi4 optimization failed to converge.")
-
-        my_log_print(f"✅ Optimized {label} Energy = {E_opt:.8f} Hartree")
-        return E_opt, wfn_opt
-
-    except Exception as e:
-        my_log_print(f"🛑 FATAL CALCULATION ERROR for {label}: {e}")
-        # Always attempt final cleanup even if calculation failed
-        psi4.core.clean()
-        return 999999.999999, None
-
-def calculate_properties_and_save(wfn, label):
-    """Calculates molecular properties and saves the optimized Molden file."""
-    if wfn is None:
-        my_log_print(f"\nThe wave function for {label} is Null. cannot compute optimization! returning...")
-        return
-
-    my_log_print(f"\nCalculating properties (Dipole and Charges) for optimized {label}...")
-
-    # Calculate properties: Dipole Moment and ESP charges
-    psi4.oeprop(wfn, 'DIPOLE', 'ESP_CHARGES')
-
-    # Generate MOLDEN file for visualization
-    molden_file = f'{label.lower()}_optimized.molden'
-    psi4.molden(wfn, molden_file)
-    my_log_print(f"💾 Molden file saved as '{molden_file}'")
-    psi4.core.clean()
-    pass
 
 # --- 4. MAIN EXECUTION FUNCTION ---
 

@@ -10,7 +10,6 @@ from psi4.core import Molecule
 METHOD = 'B3LYP-D3'  # DFT with Grimme's dispersion correction
 BASIS = '6-31G(d)'
 THREADS = os.cpu_count() or 4
-LOG_FILE = 'analysis_summary.log' # Custom file for summary prints
 
 def my_log_print(message):
     """Prints the message to the console and appends it to the summary log file."""
@@ -20,7 +19,7 @@ def my_log_print(message):
 
     # 1. Print to console
     print(message)
-
+    LOG_FILE = 'analysis_summary.log'  # Custom file for summary prints
     # 2. Append to log file
     try:
         with open(LOG_FILE, 'a') as f:
