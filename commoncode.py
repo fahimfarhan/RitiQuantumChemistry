@@ -8,10 +8,11 @@ from psi4.core import Molecule
 # --- 1. CONFIGURATION ---
 # Global variables for settings (or pass them via a dictionary/config object)
 METHOD = 'B3LYP-D3'  # DFT with Grimme's dispersion correction
-BASIS = '6-31G(d)'
+# BASIS = '6-31G(d)'
+BASIS = '6-31+G(d)' # Update global variable
 THREADS = os.cpu_count() or 4
 INFINITY = 999999.999999
-GEOM_MAX_ITER = 250
+GEOM_MAX_ITER = 500
 
 def my_log_print(message):
     """Prints the message to the console and appends it to the summary log file."""
@@ -71,8 +72,11 @@ def setup_psi4_environment(method, basis, threads, memory=None):
 
     psi4.set_options({
         'basis': basis,
-        'd_convergence': 1e-8,
-        'e_convergence': 1e-8,
+        'd_convergence': 1e-9,  # Tightened Density Convergence
+        'e_convergence': 1e-9,  # Tightened Energy Convergence
+        'g_convergence': 'qchem',  # Use a different set of internal convergence criteria
+        # 'opt_type': TODO(set optimizer),  # Explicitly switch the optimization algorithm
+
         'guess': 'sad',
         'geom_maxiter': GEOM_MAX_ITER,
         'print': 2,

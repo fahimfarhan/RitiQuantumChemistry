@@ -3,24 +3,67 @@ import sys
 from commoncode import *
 
 h2o = """
-O            4.863548169202     0.135042546524     0.000003358471
-H            4.115055602571    -0.475514748018     0.000001289630
-H            5.642405360243    -0.435209389734     0.000004323706
+O  0.94921  -0.06421  -0.05148
+H  0.67036  -0.78825  -0.63196
+H  1.91710  -0.10043  -0.08052
 """
 
 methanol = """
-C            0.716615969945     0.072467437735    -0.000004833050
-H            0.579388382383     0.773185355040     1.036950473417
-H            0.201417676647    -0.277022476256    -0.000006255870
-H            0.579392564603     0.773187391365    -1.036959312668
-O            1.815277371461    -0.551748051113    -0.000003293956
-H            1.886865400471    -1.511408686766    -0.000004098699
+O  0.70790  0.00000  0.00000
+C -0.70790  0.00000  0.00000
+H -1.07320 -0.76900  0.68520
+H -1.07310 -0.19470 -1.01130
+H -1.06320  0.97860  0.33120
+H  0.99360 -0.88040 -0.29800
 """
 
-co2 = """
-C           -2.922436901136     0.159084015735    -0.000011621813
-O           -4.087858826501     0.099718874015     0.000022974848
-O           -1.755478330631     0.215903607308    -0.000009838598
+cellobiose = """
+C   -3.9780   -2.4560   0.0000
+C   -2.6820   -1.7890   0.0000
+C   -1.5210   -2.7460   0.0000
+O   -1.4910   -4.1450   0.0000
+C   -0.2210   -2.0070   0.0000
+C   -0.2600   -0.5090   0.0000
+O   -1.3660    0.2500   0.0000
+C    1.0650    0.1880   0.0000
+C    2.2250   -0.7690   0.0000
+O    3.4900   -0.0470   0.0000
+C    2.2680   -2.2750   0.0000
+O    3.3980   -3.0450   0.0000
+O    0.9340   -2.9400   0.0000
+H   -4.8970   -1.8440   0.0000
+H   -4.0390   -3.5340   0.0000
+H   -2.7230   -0.7080   0.0000
+H    0.7330   -0.0930   0.0000
+H    1.1510    1.2700   0.0000
+H    2.2060   -2.7930   0.9320
+H    2.2060   -2.7930  -0.9320
+H    3.8530   -3.5520   0.0000
+H    0.8950   -3.5200   0.9320
+H    0.8950   -3.5200  -0.9320
+H   -0.1690    0.7070   0.0000
+O   -5.1900   -0.9400   0.0000
+O   -3.8720    0.1800   0.0000
+C   -2.4860    0.9500   0.0000
+C   -1.2750   -0.0550   0.0000
+C    0.0400    0.7030   0.0000
+O    1.1570   -0.0190   0.0000
+C    2.3660    0.7140   0.0000
+O    2.8860   -0.4960   0.0000
+C    4.3060   -0.4960   0.0000
+C    4.8260    0.7140   0.0000
+O    4.3060    1.9240   0.0000
+C    2.8860    1.9240   0.0000
+O    2.3660    3.1340   0.0000
+C    0.9460    3.1340   0.0000
+O    0.4260    1.9240   0.0000
+H   -6.0150   -1.4400   0.0000
+H   -4.0180    1.2600   0.0000
+H   -2.4780    2.0340   0.0000
+H    5.8730    0.7140   0.0000
+H    4.8260   -1.4150   0.0000
+H    0.9460    4.0500   0.0000
+H    2.3660    4.0500   0.0000
 """
 
 def define_complex_molecule_geometry():
@@ -35,7 +78,7 @@ def define_complex_molecule_geometry():
         --
         {methanol}
         --
-        {co2}
+        {cellobiose}
         """
 
     print(three_molecules)
@@ -58,9 +101,9 @@ def three_molecule_analysis():
         0 1
         {methanol}
     """)
-    co2_geom = psi4.geometry(f"""
+    cellobiose_geom = psi4.geometry(f"""
         0 1
-        {co2}
+        {cellobiose}
     """)
 
     # 3. Perform Calculations
@@ -78,19 +121,19 @@ def three_molecule_analysis():
     # Monomer Optimization (Only need to do one, as they are identical)
     E_h2o_opt, _ = optimize_and_get_energy(h2o_geom, METHOD, BASIS, "Water_Monomer")
     E_methanol_opt, _ = optimize_and_get_energy(methanol_geom, METHOD, BASIS, "Methanol_Monomer")
-    E_co2_opt, _ = optimize_and_get_energy(co2_geom, METHOD, BASIS, "CO2_Monomer")
+    E_cellobiose_opt, _ = optimize_and_get_energy(cellobiose_geom, METHOD, BASIS, "cellobiose_Monomer")
 
     # 4. Property Analysis and Output for Trimer
-    calculate_properties_and_save(wfn_trimer, "Three_Molecules")
+    calculate_properties_and_save(wfn_trimer, "Cluster")
 
     # 5. Calculate Binding Energy (Total Interaction Energy)
-    # E_binding = E(Trimer) - E_h2o_opt - E_methanol_opt - E_co2_opt
-    E_binding = E_trimer_opt - (E_h2o_opt + E_methanol_opt + E_co2_opt)
+    # E_binding = E(Trimer) - E_h2o_opt - E_methanol_opt - E_cellobiose_opt
+    E_binding = E_trimer_opt - (E_h2o_opt + E_methanol_opt + E_cellobiose_opt)
     E_binding_kcal = E_binding * psi4.constants.hartree2kcalmol
 
     # 6. Final Summary
     summary_message = f"""
-            ================== Three Molecule Final Summary ==================
+            ================== Cluster Final Summary ==================
             Method/Basis  : {METHOD} / {BASIS} (9 Atoms)
             E(Optimized Trimer)  : {E_trimer_opt:.8f} Hartree
             E(Optimized Monomer) : {E_monomer_opt:.8f} Hartree
