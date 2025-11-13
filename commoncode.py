@@ -11,6 +11,7 @@ METHOD = 'B3LYP-D3'  # DFT with Grimme's dispersion correction
 BASIS = '6-31G(d)'
 THREADS = os.cpu_count() or 4
 INFINITY = 999999.999999
+GEOM_MAX_ITER = 250
 
 def my_log_print(message):
     """Prints the message to the console and appends it to the summary log file."""
@@ -73,7 +74,7 @@ def setup_psi4_environment(method, basis, threads, memory=None):
         'd_convergence': 1e-8,
         'e_convergence': 1e-8,
         'guess': 'sad',
-        'geom_maxiter': 50,
+        'geom_maxiter': GEOM_MAX_ITER,
         'print': 2,
         'scf_type': 'df',  # CPU Optimization: Density Fitting
         'freeze_core': True,
