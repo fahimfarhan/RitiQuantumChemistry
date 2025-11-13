@@ -57,7 +57,7 @@ def run_multiple_monomers_analysis():
         # Run optimization and analysis
         E_opt, wfn_opt = optimize_and_get_energy(molecule, METHOD, BASIS, label)
 
-        if E_opt != 999999.999999:
+        if E_opt != INFINITY:
             calculate_properties_and_save(wfn_opt, label)
             all_results[label] = E_opt
         else:

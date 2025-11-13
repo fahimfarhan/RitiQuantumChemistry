@@ -172,7 +172,7 @@ def optimize_and_get_energy(molecule, method, basis, label):
         my_log_print(f"🛑 FATAL CALCULATION ERROR for {label}: {e}")
         # Always attempt final cleanup even if calculation failed
         psi4.core.clean()
-        return 999999.999999, None
+        return INFINITY, None
 
 
 def calculate_properties_and_save(wfn, label):

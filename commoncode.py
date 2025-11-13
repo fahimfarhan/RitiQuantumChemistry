@@ -10,6 +10,7 @@ from psi4.core import Molecule
 METHOD = 'B3LYP-D3'  # DFT with Grimme's dispersion correction
 BASIS = '6-31G(d)'
 THREADS = os.cpu_count() or 4
+INFINITY = 999999.999999
 
 def my_log_print(message):
     """Prints the message to the console and appends it to the summary log file."""
@@ -130,7 +131,7 @@ def optimize_and_get_energy(molecule: Molecule, method, basis, label):
         my_log_print(f"🛑 FATAL CALCULATION ERROR for {label}: {e}")
         # Always attempt final cleanup even if calculation failed
         psi4.core.clean()
-        return 999999.999999, None
+        return INFINITY, None
 
 def calculate_properties_and_save(wfn, label):
     """Calculates molecular properties and saves the optimized Molden file."""
